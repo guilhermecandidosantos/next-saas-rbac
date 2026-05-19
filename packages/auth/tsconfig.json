@@ -1,0 +1,5 @@
+{
+  "extends": "@saas/tsconfig/library",
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}
