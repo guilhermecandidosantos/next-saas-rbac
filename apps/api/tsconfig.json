@@ -1,6 +1,6 @@
 {
   "extends": "@saas/tsconfig/node",
-  "include": ["src/**/*", "prisma.config.ts"],
+  "include": ["src/**/*", "prisma.config.ts", "@types/**/*"],
   "compilerOptions": {
     "paths": {
       "@/*": ["./src/*"],
