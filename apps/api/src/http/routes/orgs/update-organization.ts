@@ -14,7 +14,7 @@ export async function updateOrganization(app: FastifyInstance) {
     .withTypeProvider<ZodTypeProvider>()
     .register(auth)
     .put(
-      '/organization/:slug',
+      '/organizations/:slug',
       {
         schema: {
           tags: ['Organizations'],
