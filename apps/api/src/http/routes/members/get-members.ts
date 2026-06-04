@@ -1,0 +1,92 @@
+import { rolesSchema } from '@saas/auth'
+import { FastifyInstance } from 'fastify'
+import { ZodTypeProvider } from 'fastify-type-provider-zod'
+import z from 'zod'
+
+import { auth } from '@/http/middlewares/auth'
+import { prisma } from '@/lib/prisma'
+import { getUserPermissions } from '@/utils/get-user-persmissions'
+
+import { UnauthorizedError } from '../_errors/unauthorized-error'
+
+export async function getMembers(app: FastifyInstance) {
+  app
+    .withTypeProvider<ZodTypeProvider>()
+    .register(auth)
+    .get(
+      '/organizations/:slug/members',
+      {
+        schema: {
+          tags: ['Members'],
+          summary: 'Get all members',
+          description:
+            'Retrieve the list of members within the specified organization.',
+          security: [{ bearerAuth: [] }],
+          params: z.object({
+            slug: z.string(),
+          }),
+          response: {
+            200: z.object({
+              members: z.array(
+                z.object({
+                  userId: z.uuid(),
+                  id: z.uuid(),
+                  role: rolesSchema,
+                  name: z.string().nullable(),
+                  email: z.string(),
+                  avatarUrl: z.url().nullable(),
+                }),
+              ),
+            }),
+          },
+        },
+      },
+      async (request, reply) => {
+        const { slug } = request.params
+        const userId = await request.getCurrentUserId()
+        const { membership, organization } =
+          await request.getUserMembership(slug)
+
+        const { cannot } = getUserPermissions(userId, membership.role)
+
+        if (cannot('get', 'User')) {
+          throw new UnauthorizedError(
+            "You're not allowed to view members in this organization.",
+          )
+        }
+
+        const members = await prisma.member.findMany({
+          select: {
+            id: true,
+            role: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                avatarUrl: true,
+              },
+            },
+          },
+          where: {
+            organizationId: organization.id,
+          },
+          orderBy: {
+            role: 'asc',
+          },
+        })
+
+        const membersWithRoles = members.map(
+          ({ user: { id: userId, ...user }, ...member }) => {
+            return {
+              ...user,
+              ...member,
+              userId,
+            }
+          },
+        )
+
+        return reply.status(200).send({ members: membersWithRoles })
+      },
+    )
+}
