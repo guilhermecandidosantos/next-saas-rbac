@@ -1,10 +1,10 @@
 {
-  "extends": "@saas/tsconfig/node",
+  "extends": "@saas/tsconfig/nextjs",
   "compilerOptions": {
     "jsx": "react-jsx",
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
   },
   "include": [
     "next-env.d.ts",
