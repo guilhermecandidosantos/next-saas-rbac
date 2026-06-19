@@ -2,6 +2,7 @@ import './globals.css'
 
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import { ThemeProvider } from 'next-themes'
 
 import { cn } from '@/lib/utils'
 
@@ -19,9 +20,18 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={cn('dark h-full antialiased', 'font-sans', inter.variable)}
+      className={cn('h-full antialiased', 'font-sans', inter.variable)}
+      suppressHydrationWarning
     >
-      <body>{children}</body>
+      <body>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
+      </body>
     </html>
   )
 }
