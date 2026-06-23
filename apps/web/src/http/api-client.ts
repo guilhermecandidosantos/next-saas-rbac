@@ -1,5 +1,4 @@
 import { env } from '@saas/env'
-import { type CookiesFn, getCookie } from 'cookies-next'
 import ky from 'ky'
 
 export const api = ky.create({
@@ -7,15 +6,18 @@ export const api = ky.create({
   hooks: {
     beforeRequest: [
       async ({ request }) => {
-        let cookieStore: CookiesFn | undefined
+        let token: string | undefined
 
-        if (typeof window === 'undefined') {
-          const { cookies } = await import('next/headers')
+        if (typeof window !== 'undefined') {
+          token = await fetch('/api/token')
+            .then((res) => res.json())
+            .then((data) => data.token)
+        } else {
+          const { cookies: getServerCookies } = await import('next/headers')
+          const cookieStore = await getServerCookies()
 
-          cookieStore = cookies
+          token = cookieStore.get('token')?.value
         }
-
-        const token = await getCookie('token', { cookies: cookieStore })
 
         if (token) {
           request.headers.set('Authorization', `Bearer ${token}`)

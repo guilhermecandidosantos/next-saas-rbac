@@ -79,7 +79,9 @@ export async function getProjects(app: FastifyInstance) {
             },
           },
           where: {
-            slug,
+            organization: {
+              slug,
+            },
           },
           orderBy: {
             createdAt: 'desc',

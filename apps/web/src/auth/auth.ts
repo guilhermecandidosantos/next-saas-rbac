@@ -1,10 +1,11 @@
 'use server'
+import { defineAbilitiesFor } from '@saas/auth'
+import { HTTPError } from 'ky'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 
-import { getProfile } from '@/http/get-profile'
 import { getMembership } from '@/http/get-membership'
-import { defineAbilitiesFor } from '@saas/auth'
+import { getProfile } from '@/http/get-profile'
 
 export async function isAuthenticated() {
   const cookiesStore = await cookies()
@@ -24,7 +25,7 @@ export async function getCurrentMembership() {
     return null
   }
 
-  const {membership} = await getMembership(org)
+  const { membership } = await getMembership(org)
 
   return membership
 }
@@ -58,7 +59,12 @@ export async function auth() {
 
     return { user }
   } catch (error) {
-    cookiesStore.delete('token')
+    if (
+      error instanceof HTTPError &&
+      (error.response.status === 401 || error.response.status === 403)
+    ) {
+      cookiesStore.delete('token')
+    }
   }
 
   redirect('/auth/sign-in')
