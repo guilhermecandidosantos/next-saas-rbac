@@ -80,20 +80,25 @@ export async function requestPasswordRecovery(app: FastifyInstance) {
       })
 
       try {
+        console.info('Verifying email transporter...')
         await transporter.verify()
+        console.info('Email transporter verified successfully')
       } catch (error) {
+        console.error('Error verifying email transporter:', error)
         return reply.status(400).send({
           message:
             'Error verifying email transporter' + (error as Error).message,
         })
       }
 
+      console.info('Sending password recovery email to:', email)
       await transporter.sendMail({
         from: userEmail,
         to: email,
         subject: 'Password Recovery',
         text: `Hello, your link to reset your password is: ${publicUrlApplication}/auth/new-password/${code}`,
       })
+      console.info('Password recovery email sent successfully to:', email)
 
       return reply.status(201).send({ code })
     },
