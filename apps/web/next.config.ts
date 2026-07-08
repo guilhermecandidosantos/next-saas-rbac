@@ -7,6 +7,15 @@ const nextConfig: NextConfig = {
       { hostname: 'avatars.githubusercontent.com' },
     ],
   },
+  experimental: {
+    serverActions: {
+      allowedOrigins: [
+        'http://localhost:3000',
+        'http://localhost:3333',
+        'https://next-saas.guilhermecandidosantos.com.br',
+      ],
+    },
+  },
 }
 
 export default nextConfig
