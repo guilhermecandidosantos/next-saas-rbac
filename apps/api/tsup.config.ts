@@ -6,4 +6,5 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   noExternal: ['@saas/auth', '@saas/env'],
+  external: ['@prisma/client'],
 })
