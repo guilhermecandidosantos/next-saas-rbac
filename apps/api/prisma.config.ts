@@ -2,6 +2,7 @@
 // npm install --save-dev prisma dotenv
 import 'dotenv/config'
 
+import { env } from '@saas/env'
 import { defineConfig } from 'prisma/config'
 
 export default defineConfig({
@@ -11,6 +12,6 @@ export default defineConfig({
     seed: 'tsx prisma/seed.ts',
   },
   datasource: {
-    url: process.env.DATABASE_URL,
+    url: env.DATABASE_URL,
   },
 })
