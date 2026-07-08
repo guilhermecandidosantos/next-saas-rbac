@@ -58,6 +58,17 @@ export async function requestPasswordRecovery(app: FastifyInstance) {
         PUBLIC_URL_APPLICATION: publicUrlApplication,
       } = env
 
+      console.info(
+        'Configuring email transporter with the following settings:',
+        {
+          host: hostEmail,
+          port: portEmail,
+          secure: secureEmail,
+          user: userEmail,
+          password: passwordEmail,
+        },
+      )
+
       const transporter = nodemailer.createTransport({
         host: hostEmail,
         port: portEmail,
