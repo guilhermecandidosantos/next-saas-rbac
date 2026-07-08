@@ -1,5 +1,7 @@
+import { env } from '@saas/env'
 import { FastifyInstance } from 'fastify'
 import { ZodTypeProvider } from 'fastify-type-provider-zod'
+import nodemailer from 'nodemailer'
 import z from 'zod'
 
 import { prisma } from '@/lib/prisma'
@@ -16,7 +18,12 @@ export async function requestPasswordRecovery(app: FastifyInstance) {
           email: z.email(),
         }),
         response: {
-          201: z.object({}),
+          201: z.object({
+            code: z.string(),
+          }),
+          400: z.object({
+            message: z.string(),
+          }),
         },
       },
     },
@@ -28,7 +35,9 @@ export async function requestPasswordRecovery(app: FastifyInstance) {
       })
 
       if (!userFromEmail) {
-        return reply.status(201).send({})
+        return reply.status(400).send({
+          message: 'User not found',
+        })
       }
 
       const { id: code } = await prisma.token.create({
@@ -40,9 +49,42 @@ export async function requestPasswordRecovery(app: FastifyInstance) {
 
       // Send e-mail with passowrd recover link
 
-      console.log('Password recovery code:', code)
+      const {
+        HOST_EMAIL: hostEmail,
+        PORT_EMAIL: portEmail,
+        SECURE_EMAIL: secureEmail,
+        USER_EMAIL: userEmail,
+        PASSWORD_EMAIL: passwordEmail,
+        PUBLIC_URL_APPLICATION: publicUrlApplication,
+      } = env
 
-      return reply.status(201).send({})
+      const transporter = nodemailer.createTransport({
+        host: hostEmail,
+        port: portEmail,
+        secure: secureEmail,
+        auth: {
+          user: userEmail,
+          pass: passwordEmail,
+        },
+      })
+
+      try {
+        await transporter.verify()
+      } catch (error) {
+        return reply.status(400).send({
+          message:
+            'Error verifying email transporter' + (error as Error).message,
+        })
+      }
+
+      await transporter.sendMail({
+        from: userEmail,
+        to: email,
+        subject: 'Password Recovery',
+        text: `Hello, your link to reset your password is: ${publicUrlApplication}/auth/new-password/${code}`,
+      })
+
+      return reply.status(201).send({ code })
     },
   )
 }

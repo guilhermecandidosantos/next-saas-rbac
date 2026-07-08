@@ -5,6 +5,7 @@ import z from 'zod'
 
 import { prisma } from '@/lib/prisma'
 
+import { BadRequestError } from '../_errors/bad-request-error'
 import { UnauthorizedError } from '../_errors/unauthorized-error'
 
 export async function resetPassword(app: FastifyInstance) {
@@ -18,14 +19,18 @@ export async function resetPassword(app: FastifyInstance) {
         body: z.object({
           code: z.string(),
           password: z.string().min(6),
+          confirmPassword: z.string().min(6),
         }),
         response: {
           204: z.object({}),
+          400: z.object({
+            message: z.string(),
+          }),
         },
       },
     },
     async (request, reply) => {
-      const { code, password } = request.body
+      const { code, password, confirmPassword } = request.body
 
       const tokenFromCode = await prisma.token.findUnique({
         where: { id: code },
@@ -35,6 +40,10 @@ export async function resetPassword(app: FastifyInstance) {
         throw new UnauthorizedError(
           'Invalid or expired password recovery code.',
         )
+      }
+
+      if (password !== confirmPassword) {
+        throw new BadRequestError('Password and confirm password do not match.')
       }
 
       const passowordHash = await hash(password, 6)

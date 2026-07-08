@@ -11,6 +11,13 @@ export const env = createEnv({
     GITHUB_OAUTH_CLIENT_ID: z.string(),
     GITHUB_OAUTH_CLIENT_SECRET: z.string(),
     GITHUB_OAUTH_CALLBACK_URL: z.url(),
+
+    HOST_EMAIL: z.string(),
+    USER_EMAIL: z.string(),
+    PASSWORD_EMAIL: z.string(),
+    PORT_EMAIL: z.coerce.number().default(465),
+    SECURE_EMAIL: z.coerce.boolean().default(true),
+    PUBLIC_URL_APPLICATION: z.url(),
   },
   client: {},
   shared: {
@@ -24,6 +31,12 @@ export const env = createEnv({
     GITHUB_OAUTH_CLIENT_SECRET: process.env.GITHUB_OAUTH_CLIENT_SECRET,
     GITHUB_OAUTH_CALLBACK_URL: process.env.GITHUB_OAUTH_CALLBACK_URL,
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+    PUBLIC_URL_APPLICATION: process.env.PUBLIC_URL_APPLICATION,
+    HOST_EMAIL: process.env.HOST_EMAIL,
+    USER_EMAIL: process.env.USER_EMAIL,
+    PASSWORD_EMAIL: process.env.PASSWORD_EMAIL,
+    PORT_EMAIL: process.env.PORT_EMAIL,
+    SECURE_EMAIL: process.env.SECURE_EMAIL,
   },
   emptyStringAsUndefined: true,
 })
