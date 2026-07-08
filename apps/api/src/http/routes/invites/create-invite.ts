@@ -52,10 +52,10 @@ export async function createInvite(app: FastifyInstance) {
 
         const { email, role } = request.body
 
-        const [, domain] = email
+        const [, domain] = email.split('@')
 
         if (
-          !organization.shouldAttachUsersByDomain &&
+          organization.shouldAttachUsersByDomain &&
           organization.domain === domain
         ) {
           throw new BadRequestError(
