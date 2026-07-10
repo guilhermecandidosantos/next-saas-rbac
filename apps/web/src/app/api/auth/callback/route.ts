@@ -24,6 +24,27 @@ export async function GET(request: NextRequest) {
   if (token) {
     const cookiesStore = await cookies()
 
+    cookiesStore.set('token', '', {
+      path: '/',
+      maxAge: 0,
+      httpOnly: true,
+      ...(env.NODE_ENV === 'production' && {
+        secure: true,
+        sameSite: 'lax',
+      }),
+    })
+
+    cookiesStore.set('token', '', {
+      path: '/',
+      maxAge: 0,
+      httpOnly: true,
+      ...(env.NODE_ENV === 'production' && {
+        secure: true,
+        sameSite: 'lax',
+        domain: '.guilhermecandidosantos.com.br',
+      }),
+    })
+
     cookiesStore.set('token', token, {
       path: '/',
       maxAge: 60 * 60 * 24 * 7, // 7 days

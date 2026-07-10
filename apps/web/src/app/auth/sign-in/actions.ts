@@ -37,6 +37,27 @@ export async function signInWithEmailAndPassword(data: FormData) {
     if (token) {
       const cookiesStore = await cookies()
 
+      cookiesStore.set('token', '', {
+        path: '/',
+        httpOnly: true,
+        maxAge: 0,
+        ...(env.NODE_ENV === 'production' && {
+          secure: true,
+          sameSite: 'lax',
+        }),
+      })
+
+      cookiesStore.set('token', '', {
+        path: '/',
+        httpOnly: true,
+        maxAge: 0,
+        ...(env.NODE_ENV === 'production' && {
+          secure: true,
+          sameSite: 'lax',
+          domain: '.guilhermecandidosantos.com.br',
+        }),
+      })
+
       cookiesStore.set('token', token, {
         path: '/',
         httpOnly: true,
