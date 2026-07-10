@@ -3,6 +3,7 @@ import ky from 'ky'
 
 export const api = ky.create({
   prefix: env.NEXT_PUBLIC_API_URL,
+  credentials: 'include',
   timeout: 350000,
   retry: {
     limit: 2,
