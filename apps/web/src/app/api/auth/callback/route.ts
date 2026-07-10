@@ -31,7 +31,6 @@ export async function GET(request: NextRequest) {
       ...(env.NODE_ENV === 'production' && {
         secure: true,
         sameSite: 'lax',
-        domain: '.guilhermecandidosantos.com.br',
       }),
     })
 
