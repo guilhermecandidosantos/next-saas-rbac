@@ -39,4 +39,9 @@ export const env = createEnv({
     SECURE_EMAIL: process.env.SECURE_EMAIL,
   },
   emptyStringAsUndefined: true,
+  // Pula a validação durante o build do Next.js
+  // As variáveis server-side só são necessárias em runtime
+  skipValidation:
+    !!process.env.SKIP_ENV_VALIDATION ||
+    process.env.npm_lifecycle_event === 'build',
 })

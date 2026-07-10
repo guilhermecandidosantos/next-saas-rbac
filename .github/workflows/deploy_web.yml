@@ -1,0 +1,37 @@
+name: Deploy WEB
+
+on:
+  push:
+    branches:
+      - main
+    paths: 
+      - "apps/web/**"
+      - "packages/**"
+      - "!apps/api/**"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Build
+      uses: appleboy/ssh-action@v1.2.5
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.KEY }}
+        port: ${{ secrets.PORT }}
+        script: |
+          set -e
+
+          export NVM_DIR="/root/.nvm"
+          export PATH="$NVM_DIR/versions/node/v24.18.0/bin:/root/.local/share/pnpm/bin:$PATH"
+         
+          cd /opt/next-saas-rbac/
+  
+          git pull origin main
+
+          pnpm --filter web install
+          pnpm --filter web run build
+          
+          systemctl restart next-saas-web
+          systemctl restart nginx
