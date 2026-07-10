@@ -1,3 +1,4 @@
+import { env } from '@saas/env'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -25,8 +26,13 @@ export async function GET(request: NextRequest) {
 
     cookiesStore.set('token', token, {
       path: '/',
-      httpOnly: true,
       maxAge: 60 * 60 * 24 * 7, // 7 days
+      httpOnly: true,
+      ...(env.NODE_ENV === 'production' && {
+        secure: true,
+        sameSite: 'lax',
+        domain: '.guilhermecandidosantos.com.br',
+      }),
     })
 
     const inviteId = cookiesStore.get('inviteId')?.value

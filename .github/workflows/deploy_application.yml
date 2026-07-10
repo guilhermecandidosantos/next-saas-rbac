@@ -1,0 +1,98 @@
+name: Deploy Next SaaS RBAC
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      web: ${{ steps.filter.outputs.web }}
+      packages: ${{ steps.filter.outputs.packages }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            api:
+              - 'apps/api/**'
+            web:
+              - 'apps/web/**'
+            packages:
+              - 'packages/**'
+
+
+  deploy:
+    needs: changes
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy Application
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          port: ${{ secrets.PORT }}
+
+          script: |
+            set -e
+
+            export NVM_DIR="/root/.nvm"
+            export PATH="$NVM_DIR/versions/node/v24.18.0/bin:/root/.local/share/pnpm/bin:$PATH"
+
+            cd /opt/next-saas-rbac/
+
+            git pull origin main
+
+            pnpm install --frozen-lockfile
+
+
+            # Se packages mudou, faz deploy completo
+            if [ "${{ needs.changes.outputs.packages }}" = "true" ]; then
+
+              echo "Packages changed. Deploying API and WEB..."
+
+              pnpm --filter api prisma migrate deploy
+              pnpm --filter api prisma generate
+              pnpm --filter api run build
+
+              pnpm --filter web run build
+
+              systemctl restart next-saas-api
+              systemctl restart next-saas-web
+
+
+            # Se somente API mudou
+            elif [ "${{ needs.changes.outputs.api }}" = "true" ]; then
+
+              echo "API changed. Deploying API..."
+
+              pnpm --filter api prisma migrate deploy
+              pnpm --filter api prisma generate
+              pnpm --filter api run build
+
+              systemctl restart next-saas-api
+
+
+            # Se somente WEB mudou
+            elif [ "${{ needs.changes.outputs.web }}" = "true" ]; then
+
+              echo "WEB changed. Deploying WEB..."
+
+              pnpm --filter web run build
+
+              systemctl restart next-saas-web
+
+            else
+
+              echo "No deploy required"
+
+            fi

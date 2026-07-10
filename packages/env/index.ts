@@ -18,6 +18,9 @@ export const env = createEnv({
     PORT_EMAIL: z.coerce.number().default(465),
     SECURE_EMAIL: z.coerce.boolean().default(true),
     PUBLIC_URL_APPLICATION: z.url(),
+    NODE_ENV: z
+      .enum(['development', 'production', 'test'])
+      .default('development'),
   },
   client: {},
   shared: {
@@ -37,6 +40,7 @@ export const env = createEnv({
     PASSWORD_EMAIL: process.env.PASSWORD_EMAIL,
     PORT_EMAIL: process.env.PORT_EMAIL,
     SECURE_EMAIL: process.env.SECURE_EMAIL,
+    NODE_ENV: process.env.NODE_ENV,
   },
   emptyStringAsUndefined: true,
   // Pula a validação durante o build do Next.js
