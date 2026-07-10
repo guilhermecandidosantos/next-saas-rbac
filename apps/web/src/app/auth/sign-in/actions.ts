@@ -44,6 +44,7 @@ export async function signInWithEmailAndPassword(data: FormData) {
         ...(env.NODE_ENV === 'production' && {
           secure: true,
           sameSite: 'lax',
+          domain: '.guilhermecandidosantos.com.br',
         }),
       })
 
