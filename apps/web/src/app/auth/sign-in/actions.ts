@@ -3,6 +3,7 @@
 import { HTTPError } from 'ky'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { env } from 'process'
 import { z } from 'zod'
 
 import { acceptInvite } from '@/http/accept-invite'
@@ -40,6 +41,11 @@ export async function signInWithEmailAndPassword(data: FormData) {
         path: '/',
         httpOnly: true,
         maxAge: 60 * 60 * 24 * 7, // 7 days
+        ...(env.NODE_ENV === 'production' && {
+          secure: true,
+          sameSite: 'lax',
+          domain: '.guilhermecandidosantos.com.br',
+        }),
       })
 
       const inviteId = cookiesStore.get('inviteId')?.value
