@@ -63,7 +63,7 @@ export async function auth() {
       error instanceof HTTPError &&
       (error.response.status === 401 || error.response.status === 403)
     ) {
-      cookiesStore.delete('token')
+      redirect('/api/auth/sign-out')
     }
   }
 
