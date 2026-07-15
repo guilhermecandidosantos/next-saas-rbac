@@ -8,10 +8,10 @@
   ![Prisma](https://img.shields.io/badge/Prisma-7.8-2D3748?style=for-the-badge&logo=prisma)
   ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript)
   
-  ![Vercel](https://img.shields.io/badge/Vercel-Deploy-000000?style=for-the-badge&logo=vercel)
-  ![Ubuntu](https://img.shields.io/badge/Ubuntu-VPS-E95420?style=for-the-badge&logo=ubuntu)
-  ![Nginx](https://img.shields.io/badge/Nginx-Proxy-009639?style=for-the-badge&logo=nginx)
+  ![Ubuntu VPS](https://img.shields.io/badge/Ubuntu-22.04_LTS-E95420?style=for-the-badge&logo=ubuntu)
+  ![Nginx](https://img.shields.io/badge/Nginx-Reverse_Proxy-009639?style=for-the-badge&logo=nginx)
   ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-CI/CD-2088FF?style=for-the-badge&logo=github-actions)
+  ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-336791?style=for-the-badge&logo=postgresql)
 </div>
 
 ---
@@ -100,8 +100,7 @@ Este é um **monorepo** gerenciado por **TurboRepo** e **pnpm workspaces**, cont
 - **[GitHub Actions](https://github.com/features/actions)** - CI/CD automatizado
 - **[Nginx](https://nginx.org/)** - Reverse proxy e servidor web
 - **[Systemd](https://systemd.io/)** - Gerenciamento de serviços Linux
-- **[Vercel](https://vercel.com/)** - Hospedagem do frontend
-- **[VPS Ubuntu](https://ubuntu.com/)** - Servidor para API
+- **[VPS Ubuntu 22.04](https://ubuntu.com/)** - Servidor para Frontend + Backend
 - **[Neon](https://neon.tech/)** - Banco de dados PostgreSQL serverless
 - **[Let's Encrypt](https://letsencrypt.org/)** - Certificados SSL gratuitos
 
@@ -372,12 +371,18 @@ O frontend usa componentes do **shadcn/ui**, que incluem:
 
 > 📖 **Documentação Completa:** Para instruções detalhadas passo a passo, troubleshooting e configurações avançadas, consulte o [**DEPLOYMENT.md**](DEPLOYMENT.md)
 
-### Backend (VPS)
+### Arquitetura de Deploy (VPS Completo)
 
-A API está hospedada em um servidor VPS próprio com deploy automatizado via **GitHub Actions**.
+**Frontend + Backend** estão hospedados em um **servidor VPS próprio** (Ubuntu 22.04) com **deploy automatizado completo via GitHub Actions**.
 
-> **⚠️ Por que não Render?**  
-> Inicialmente o projeto foi configurado para deploy no Render, porém o plano gratuito bloqueia a porta SMTP (25, 465, 587), impedindo o envio de e-mails para recuperação de senha. Por isso, optou-se por hospedar em VPS próprio.
+#### 🎯 Por que VPS ao invés de Vercel/Render?
+
+- ✅ **Controle Total:** Acesso SSH completo e configuração personalizada
+- ✅ **Custo Otimizado:** Frontend + Backend no mesmo servidor
+- ✅ **SMTP Configurado:** Sem bloqueio de portas para envio de emails
+- ✅ **Aprendizado DevOps:** Experiência completa com Linux, Nginx, Systemd, SSL
+- ✅ **Deploy Inteligente:** CI/CD detecta mudanças e deploya apenas o necessário
+- ✅ **Latência Reduzida:** Frontend e backend na mesma rede
 
 #### Configuração do VPS
 
@@ -416,11 +421,11 @@ pnpm --filter api db:generate
 pnpm --filter api build
 ```
 
-**3. Configurar Systemd Service com Variáveis de Ambiente**
+**3. Configurar Systemd Services com Variáveis de Ambiente**
 
-Crie `/etc/systemd/system/next-saas-api.service`:
+> 💡 **Nota:** As variáveis de ambiente estão configuradas diretamente nos Systemd Services, eliminando a necessidade de arquivos `.env`. Esta abordagem oferece maior segurança e isolamento.
 
-> 💡 **Nota:** As variáveis de ambiente estão configuradas diretamente no Systemd Service, eliminando a necessidade de um arquivo `.env`. Esta abordagem oferece maior segurança e isolamento.
+**Serviço da API** - Crie `/etc/systemd/system/next-saas-api.service`:
 
 ```ini
 [Unit]
@@ -458,26 +463,65 @@ SyslogIdentifier=next-saas-api
 WantedBy=multi-user.target
 ```
 
+**Serviço do Frontend** - Crie `/etc/systemd/system/next-saas-web.service`:
+
+```ini
+[Unit]
+Description=Next SaaS Web Frontend
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/next-saas-rbac/apps/web
+
+# Variáveis de Ambiente
+Environment="NODE_ENV=production"
+Environment="NEXT_PUBLIC_API_URL=https://api.seudominio.com"
+Environment="GITHUB_CLIENT_ID=seu-github-client-id"
+Environment="GITHUB_CLIENT_SECRET=seu-github-client-secret"
+Environment="GITHUB_REDIRECT_URI=https://app.seudominio.com/api/auth/callback"
+
+ExecStart=/root/.nvm/versions/node/v24.18.0/bin/node /opt/next-saas-rbac/apps/web/.next/standalone/apps/web/server.js
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=next-saas-web
+
+[Install]
+WantedBy=multi-user.target
+```
+
 **Dicas de Segurança para Variáveis de Ambiente no Systemd:**
 
-- ✅ Arquivo de serviço tem permissões restritas (640 por padrão)
+- ✅ Arquivos de serviço têm permissões restritas (640 por padrão)
 - ✅ Apenas root pode ler as variáveis
 - ✅ Variáveis não ficam expostas no filesystem
 - ✅ Use `systemctl edit next-saas-api` para editar com segurança
-- ⚠️ Nunca commite o arquivo `.service` com dados reais no Git
+- ⚠️ Nunca commite arquivos `.service` com dados reais no Git
 - 💡 Para editar: `systemctl edit --full next-saas-api`
 
 ```bash
-# Habilitar e iniciar o serviço
+# Habilitar e iniciar os serviços
 systemctl daemon-reload
+
+# API
 systemctl enable next-saas-api
 systemctl start next-saas-api
 systemctl status next-saas-api
+
+# Frontend
+systemctl enable next-saas-web
+systemctl start next-saas-web
+systemctl status next-saas-web
 ```
 
-**4. Configurar Nginx**
+**4. Configurar Nginx (Reverse Proxy)**
 
-Crie `/etc/nginx/sites-available/next-saas-api`:
+**API** - Crie `/etc/nginx/sites-available/next-saas-api`:
 
 ```nginx
 server {
@@ -494,19 +538,52 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
+        
+        # Timeouts
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+}
+```
+
+**Frontend** - Crie `/etc/nginx/sites-available/next-saas-web`:
+
+```nginx
+server {
+    listen 80;
+    server_name app.seudominio.com;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        
+        # Timeouts
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
     }
 }
 ```
 
 ```bash
-# Ativar o site e reiniciar nginx
+# Ativar os sites e reiniciar nginx
 ln -s /etc/nginx/sites-available/next-saas-api /etc/nginx/sites-enabled/
+ln -s /etc/nginx/sites-available/next-saas-web /etc/nginx/sites-enabled/
 nginx -t
 systemctl restart nginx
 
-# Configurar SSL com Let's Encrypt (opcional mas recomendado)
+# Configurar SSL com Let's Encrypt (recomendado)
 apt install certbot python3-certbot-nginx
 certbot --nginx -d api.seudominio.com
+certbot --nginx -d app.seudominio.com
 ```
 
 **5. Configurar Firewall (Segurança)**
@@ -547,17 +624,38 @@ ufw status verbose
 
 ---
 
-#### CI/CD com GitHub Actions
+#### CI/CD com GitHub Actions (Deploy Inteligente)
 
-O projeto possui workflow automatizado em `.github/workflows/deploy_api.yml` que:
+O projeto possui workflow automatizado em `.github/workflows/deploy_application.yml` que:
 
-1. Detecta mudanças em `apps/api/**` ou `packages/**`
-2. Conecta via SSH no servidor VPS
-3. Atualiza o código (`git pull`)
-4. Instala dependências
-5. Executa migrações do Prisma
-6. Faz o build da aplicação
-7. Reinicia os serviços (API + Nginx)
+**🧠 Detecção Inteligente de Mudanças:**
+- Detecta automaticamente quais partes do projeto foram alteradas
+- `apps/api/**` → Deploy apenas da API
+- `apps/web/**` → Deploy apenas do Frontend
+- `packages/**` → Deploy completo (API + Frontend)
+
+**🚀 Pipeline Automatizado:**
+1. Conecta via SSH no servidor VPS
+2. Atualiza o código (`git pull origin main`)
+3. Instala dependências (`pnpm install --frozen-lockfile`)
+4. Executa migrações do Prisma (se necessário)
+5. Faz o build das aplicações alteradas
+6. Reinicia os serviços (API e/ou Frontend)
+
+**Exemplo de Log do Workflow:**
+```bash
+# Se apenas apps/web foi alterado:
+"WEB changed. Deploying WEB..."
+pnpm --filter web run build
+systemctl restart next-saas-web
+
+# Se packages foi alterado:
+"Packages changed. Deploying API and WEB..."
+pnpm --filter api run build
+pnpm --filter web run build
+systemctl restart next-saas-api
+systemctl restart next-saas-web
+```
 
 **Secrets necessários no GitHub:**
 
@@ -581,7 +679,9 @@ ssh-copy-id -i ~/.ssh/id_rsa.pub user@seu-servidor
 cat ~/.ssh/id_rsa
 ```
 
-#### Deploy Manual (se necessário)
+#### Deploy Manual (Completo)
+
+Caso precise fazer deploy manual:
 
 ```bash
 # SSH no servidor
@@ -593,17 +693,31 @@ cd /opt/next-saas-rbac
 # Atualizar código
 git pull origin main
 
-# Build e restart
-pnpm --filter api install --frozen-lockfile
+# Instalar dependências
+pnpm install --frozen-lockfile
+
+# API: Build e migrações
 pnpm --filter api prisma migrate deploy
 pnpm --filter api prisma generate
 pnpm --filter api build
+
+# Frontend: Build
+pnpm --filter web build
+
+# Reiniciar serviços
 systemctl restart next-saas-api
+systemctl restart next-saas-web
+
+# Verificar status
+systemctl status next-saas-api
+systemctl status next-saas-web
 ```
 
 ---
 
-### Backend (Render - Alternativa)
+### Opções Alternativas de Deploy
+
+#### Backend (Render)
 
 > **⚠️ Limitação:** O plano gratuito do Render bloqueia portas SMTP. Use apenas se não precisar de envio de e-mails ou se optar por um plano pago.
 
@@ -615,9 +729,7 @@ systemctl restart next-saas-api
 6. Adicione as variáveis de ambiente
 7. Faça o deploy
 
----
-
-### Frontend (Vercel)
+#### Frontend (Vercel)
 
 1. Importe o projeto para a Vercel
 2. Defina o diretório raiz como `apps/web`
@@ -630,33 +742,36 @@ systemctl restart next-saas-api
    ```
 4. Faça o deploy
 
----
-
-### Banco de Dados (Neon)
+#### Banco de Dados (Neon)
 
 1. Crie um novo projeto no Neon
 2. Copie a string de conexão
-3. Atualize `DATABASE_URL` nas suas variáveis de ambiente
+3. Atualize `DATABASE_URL` nas suas variáveis de ambiente (Systemd Service)
 4. Execute as migrações (automaticamente no deploy ou manualmente)
 
 ---
 
 ## 🔍 Monitoramento e Troubleshooting (VPS)
 
-### Visualizar Logs da API
+### Visualizar Logs
 
 ```bash
-# Logs em tempo real
+# Logs da API em tempo real
 journalctl -u next-saas-api -f
 
-# Últimas 100 linhas
+# Logs do Frontend em tempo real
+journalctl -u next-saas-web -f
+
+# Últimas 100 linhas da API
 journalctl -u next-saas-api -n 100
 
 # Logs de hoje
 journalctl -u next-saas-api --since today
+journalctl -u next-saas-web --since today
 
 # Logs com filtro de erro
 journalctl -u next-saas-api | grep -i error
+journalctl -u next-saas-web | grep -i error
 ```
 
 ### Verificar Status dos Serviços
@@ -665,11 +780,15 @@ journalctl -u next-saas-api | grep -i error
 # Status da API
 systemctl status next-saas-api
 
+# Status do Frontend
+systemctl status next-saas-web
+
 # Status do Nginx
 systemctl status nginx
 
-# Verificar se a API está respondendo
-curl http://localhost:3333/docs
+# Verificar se as aplicações estão respondendo
+curl http://localhost:3333/docs  # API
+curl http://localhost:3000       # Frontend
 ```
 
 ### Comandos Úteis
@@ -678,16 +797,19 @@ curl http://localhost:3333/docs
 # Reiniciar API
 systemctl restart next-saas-api
 
+# Reiniciar Frontend
+systemctl restart next-saas-web
+
 # Reiniciar Nginx
 systemctl restart nginx
 
 # Ver processos Node.js rodando
 ps aux | grep node
 
-# Verificar porta 3333
-netstat -tulpn | grep 3333
+# Verificar portas
+netstat -tulpn | grep -E '3000|3333'
 # ou
-ss -tulpn | grep 3333
+ss -tulpn | grep -E '3000|3333'
 
 # Espaço em disco
 df -h
@@ -713,6 +835,18 @@ ls -la /opt/next-saas-rbac/apps/api/dist/
 
 # Verificar permissões
 chown -R root:root /opt/next-saas-rbac
+```
+
+**Frontend não inicia:**
+```bash
+# Verificar logs
+journalctl -u next-saas-web -n 50
+
+# Verificar se o build foi concluído
+ls -la /opt/next-saas-rbac/apps/web/.next/
+
+# Verificar variáveis de ambiente
+systemctl show next-saas-web | grep NEXT_PUBLIC
 ```
 
 **Erro de conexão com banco:**
